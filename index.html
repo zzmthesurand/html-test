@@ -3,63 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Macronutrient Breakdown</title>
+    <title>Macronutrient Permutations</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <h1>Macronutrient Breakdown</h1>
-    <p>Enter the number of kcal or kJ and we'll calculate the grams of protein, carbs, and fat:</p>
+    <h1>Macronutrient Permutations</h1>
+    <p>Enter the number of kcal and see all possible combinations of protein, carbs, and fat:</p>
 
-    <label for="energy">Energy (kcal or kJ):</label>
-    <input type="number" id="energy" placeholder="Enter kcal or kJ" />
-    <select id="energyType">
-        <option value="kcal">kcal</option>
-        <option value="kj">kJ</option>
-    </select>
-    <button onclick="calculate()">Calculate</button>
+    <label for="kcal">Energy (kcal):</label>
+    <input type="number" id="kcal" placeholder="Enter kcal" />
+    <button onclick="generateGraph()">Generate Graph</button>
 
-    <h2>Results:</h2>
-    <div>
-        <p>Protein (g): <span id="protein"></span></p>
-        <p>Carbs (g): <span id="carbs"></span></p>
-        <p>Fat (g): <span id="fat"></span></p>
-    </div>
-
-    <canvas id="macronutrientChart"></canvas>
+    <canvas id="macroChart"></canvas>
 
     <script>
-        function calculate() {
-            let energy = parseFloat(document.getElementById("energy").value);
-            const energyType = document.getElementById("energyType").value;
+        function generateGraph() {
+            const kcal = parseFloat(document.getElementById("kcal").value);
 
-            // Convert kJ to kcal if necessary
-            if (energyType === "kj") {
-                energy = energy / 4.184; // Convert kJ to kcal
+            if (isNaN(kcal) || kcal <= 0) {
+                alert("Please enter a valid number of kcal.");
+                return;
             }
 
-            // Assume an example ratio of macronutrients
-            const fat_g = energy * 0.3 / 9; // 30% from fat
-            const protein_g = energy * 0.25 / 4; // 25% from protein
-            const carbs_g = energy * 0.45 / 4; // 45% from carbs
+            // Generate data points for possible permutations
+            const permutations = [];
+            const proteins = [];
+            const carbs = [];
+            const fats = [];
 
-            // Update the result in the DOM
-            document.getElementById("protein").textContent = protein_g.toFixed(2);
-            document.getElementById("carbs").textContent = carbs_g.toFixed(2);
-            document.getElementById("fat").textContent = fat_g.toFixed(2);
-
-            // Create the chart
-            const ctx = document.getElementById("macronutrientChart").getContext("2d");
-            new Chart(ctx, {
-                type: 'pie',
-                data: {
-                    labels: ['Protein (g)', 'Carbs (g)', 'Fat (g)'],
-                    datasets: [{
-                        label: 'Macronutrient Breakdown',
-                        data: [protein_g, carbs_g, fat_g],
-                        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56'],
-                        hoverOffset: 4
-                    }]
+            // Loop through possible fat values and calculate corresponding protein and carb values
+            for (let fat_g = 0; fat_g <= kcal / 9; fat_g += 1) {
+                for (let protein_g = 0; protein_g <= kcal / 4; protein_g += 1) {
+                    const carbs_g = (kcal - (9 * fat_g + 4 * protein_g)) / 4;
+                    if (carbs_g >= 0) {
+                        permutations.push({
+                            protein_g: protein_g,
+                            carbs_g: carbs_g,
+                            fat_g: fat_g,
+                        });
+                        proteins.push(protein_g);
+                        carbs.push(carbs_g);
+                        fats.push(fat_g);
+                    }
                 }
+            }
+
+            // Create the line chart with each combination
+            const ctx = document.getElementById('macroChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: proteins.map((_, i) => `Combo ${i + 1}`),
+                    datasets: [
+                        {
+                            label: 'Protein (g)',
+                            data: proteins,
+                            borderColor: '#FF6384',
+                            fill: false,
+                        },
+                        {
+                            label: 'Carbs (g)',
+                            data: carbs,
+                            borderColor: '#36A2EB',
+                            fill: false,
+                        },
+                        {
+                            label: 'Fat (g)',
+                            data: fats,
+                            borderColor: '#FFCE56',
+                            fill: false,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `Possible Macronutrient Combinations for ${kcal} kcal`,
+                        },
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Combination Index',
+                            },
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Grams',
+                            },
+                        },
+                    },
+                },
             });
         }
     </script>
